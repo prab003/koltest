@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { signUpWithEmail, loginWithEmail, logout } from "@/lib/auth";
+import { getAuth } from "firebase/auth";
+import { signUpWithEmail, loginWithEmail, logout } from "../lib/auth";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +12,8 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [modules, setModules] = useState([]); // Store modules data
   const [loading, setLoading] = useState(false);
+
+  const auth = getAuth(); // Get Firebase Auth instance
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -37,27 +38,34 @@ export default function AuthPage() {
     setModules([]); // Clear modules on logout
   };
 
-  // Fetch modules directly from Firestore
   const fetchModules = async () => {
     setLoading(true);
     try {
-      const modulesRef = collection(db, "modules");
-      const snapshot = await getDocs(modulesRef);
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
 
-      let fetchedModules = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        fetchedModules.push({
-          id: doc.id,
-          addedOn: data.addedOn?.toDate() || new Date(),
-          language: data.language,
-          name: data.name,
-          questionsOrder: data.questionsOrder,
-        });
+      if (!currentUser) {
+        throw new Error("User is not authenticated");
+      }
+
+      const token = await currentUser.getIdToken();
+      console.log("User ID:", currentUser.uid);
+      console.log("Firebase Token:", token);
+
+      const response = await fetch("/api/modules", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      setModules(fetchedModules);
+      const data = await response.json();
+      console.log("Response:", data);
+      if (!data.success) throw new Error(data.error);
+
+      setModules(data.modules);
     } catch (err) {
+      console.error("Error fetching modules:", err);
       setError("Error fetching modules");
     }
     setLoading(false);
