@@ -12,6 +12,7 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [modules, setModules] = useState([]); // Store modules data
   const [loading, setLoading] = useState(false);
+  const [time, setTime] = useState(0);
 
   const auth = getAuth(); // Get Firebase Auth instance
 
@@ -40,6 +41,8 @@ export default function AuthPage() {
 
   const fetchModules = async () => {
     setLoading(true);
+    const startTime = performance.now(); // Capture start time
+
     try {
       const auth = getAuth();
       const currentUser = auth.currentUser;
@@ -68,6 +71,10 @@ export default function AuthPage() {
       console.error("Error fetching modules:", err);
       setError("Error fetching modules");
     }
+
+    const endTime = performance.now(); // Capture end time
+    console.log(`Data fetched in ${(endTime - startTime).toFixed(2)}ms`);
+    setTime((endTime - startTime).toFixed(2));
     setLoading(false);
   };
 
@@ -88,7 +95,7 @@ export default function AuthPage() {
           >
             Logout
           </button>
-
+          <p>{time} ms</p>
           <div className="mt-6">
             <h2 className="text-lg font-semibold">Modules</h2>
             {loading ? (
